@@ -36,6 +36,13 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_AWS_REGION: ${{ secrets.VITE_AWS_REGION }}
+          VITE_COGNITO_IDENTITY_POOL_ID: ${{ secrets.VITE_COGNITO_IDENTITY_POOL_ID }}
+          VITE_AWS_IOT_ENDPOINT: ${{ secrets.VITE_AWS_IOT_ENDPOINT }}
+          VITE_IOT_TOPIC: ${{ secrets.VITE_IOT_TOPIC }}
+          VITE_APP_TITLE: ${{ secrets.VITE_APP_TITLE }}
+          VITE_BASE_PATH: /busbar-viewer/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
