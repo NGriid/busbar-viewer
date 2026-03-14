@@ -23,7 +23,7 @@ const CREDENTIAL_REFRESH_MARGIN_MS = 5 * 60 * 1000;
 let clientInstance: MqttClient | null = null;
 let currentState: ConnectionState = 'idle';
 let subscribedTopics = new Set<string>();
-let callbacks: IoTConnectionCallbacks | null = null;
+let observers = new Set<IoTConnectionCallbacks>();
 let credentialRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let messageCounter = 0;
@@ -35,7 +35,9 @@ function generateClientId(): string {
 
 function setState(state: ConnectionState, error?: string): void {
     currentState = state;
-    callbacks?.onStateChange(state, error);
+    for (const observer of observers) {
+        observer.onStateChange(state, error);
+    }
 }
 
 function parsePayload(topic: string, payload: Buffer): RawIoTMessage {
@@ -158,7 +160,9 @@ async function connectInternal(): Promise<void> {
 
     client.on('message', (topic: string, payload: Buffer) => {
         const message = parsePayload(topic, payload);
-        callbacks?.onMessage(message);
+        for (const observer of observers) {
+            observer.onMessage(message);
+        }
     });
 
     client.on('error', (err: Error) => {
@@ -183,19 +187,35 @@ async function connectInternal(): Promise<void> {
     });
 }
 
-/** Connect to AWS IoT Core. Must register callbacks first. */
-export async function connect(cbs: IoTConnectionCallbacks): Promise<void> {
-    if (clientInstance) {
-        throw new Error('Already connected or connecting. Call disconnect() first.');
+/** Connect to AWS IoT Core. Returns a function to unsubscribe callbacks. */
+export async function connect(cbs: IoTConnectionCallbacks): Promise<() => void> {
+    // Add the caller to the observer set
+    observers.add(cbs);
+    
+    const unsubscribe = () => {
+        observers.delete(cbs);
+    };
+
+    // If there's already an active client/session, just attach this observer.
+    // Manual reconnects after a clean disconnect must still be allowed.
+    if (
+        clientInstance ||
+        currentState === 'connecting' ||
+        currentState === 'connected' ||
+        currentState === 'reconnecting'
+    ) {
+        // Immediately sync the caller with current state
+        cbs.onStateChange(currentState);
+        return unsubscribe;
     }
 
-    callbacks = cbs;
     messageCounter = 0;
     subscribedTopics.clear();
     setState('connecting');
 
     try {
         await connectInternal();
+        return unsubscribe;
     } catch (err) {
         const msg = err instanceof Error ? err.message : 'Connection failed';
         setState('error', msg);
@@ -216,6 +236,8 @@ export function disconnect(): void {
     }
 
     setState('disconnected');
+    // Clear observers so they don't leak memory on unmount
+    observers.clear();
 }
 
 /** Get current connection state. */

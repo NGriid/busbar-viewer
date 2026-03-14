@@ -26,7 +26,7 @@ export function DebugDashboard() {
         <div className="debug-dashboard">
             <header className="dashboard-header">
                 <h1>{config.appTitle}</h1>
-                <span className="subtitle">Phase 1 — Debug Console</span>
+                {/* <span className="subtitle">Phase 1 — Debug Console</span> */}
             </header>
 
             <ErrorPanel error={error} />

@@ -1,7 +1,7 @@
-import { DebugDashboard } from './components/DebugDashboard';
+import { DashboardLayout } from './components/DashboardLayout';
 
 function App() {
-  return <DebugDashboard />;
+  return <DashboardLayout />;
 }
 
 export default App;

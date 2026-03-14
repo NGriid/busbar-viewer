@@ -14,7 +14,8 @@
     "@aws-sdk/credential-providers": "^3.1008.0",
     "mqtt": "^5.15.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
